@@ -28,10 +28,10 @@ class Pin:
 
 class Traffects:
 
-  def __init__(self, device: str, baudrate: int = 9600):
+  def __init__(self, device: str, baudrate: int = 9600, tracker: bool = True):
     self.arduino = serial.Serial(port=device, baudrate=baudrate, timeout=0)
     self.state = [False, False, False]
-    threading.Thread(target=self._write_stats).start()
+    if tracker: threading.Thread(target=self._write_stats).start()
     time.sleep(1) # wait 1s, arduino serial connection is not ready immediately
 
   def _write_stats(self):
@@ -60,13 +60,12 @@ class Traffects:
 
   @synchronized
   def send(self, pin: int, on: bool):
-    if self.state[pin] != on: 
+    if self.stats is not None and self.state[pin] != on: 
       self.stats[pin] = self.stats[pin] + 1
 
     self.state[pin] = on
     self.step(pin)
     self.step(on)
-    print(f"{pin} -> {on}")
     self.finish()
 
   @synchronized
