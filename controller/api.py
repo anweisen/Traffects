@@ -31,8 +31,8 @@ class Traffects:
   def __init__(self, device: str, baudrate: int = 9600):
     self.arduino = serial.Serial(port=device, baudrate=baudrate, timeout=0)
     self.state = [False, False, False]
-    time.sleep(1) # wait 1s, arduino serial connection is not ready immediately
     threading.Thread(target=self._write_stats).start()
+    time.sleep(1) # wait 1s, arduino serial connection is not ready immediately
 
   def _write_stats(self):
     file = open("tracker.txt", "r")
@@ -60,8 +60,10 @@ class Traffects:
 
   @synchronized
   def send(self, pin: int, on: bool):
+    if self.state[pin] != on: 
+      self.stats[pin] = self.stats[pin] + 1
+
     self.state[pin] = on
-    self.stats[pin] = self.stats[pin] + 1
     self.step(pin)
     self.step(on)
     print(f"{pin} -> {on}")
