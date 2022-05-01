@@ -5,7 +5,7 @@ from api import Traffects, Pin
 
 # config values
 threshold = .9
-cooldown = .98
+cooldown = .99
 
 # initialize with start values
 global sub_bass_max, bass_max, low_midrange_max, midrange_max, upper_midrange_max, presence_max, brilliance_max
@@ -57,8 +57,8 @@ def beat_detect(in_data):
 
     global sub_bass_max, bass_max, low_midrange_max, midrange_max, upper_midrange_max, presence_max, brilliance_max
     sub_bass_max = max(sub_bass_max, sub_bass)
-    bass_max = max(bass_max, bass) * cooldown
-    low_midrange_max = max(low_midrange_max, low_midrange) * cooldown
+    bass_max = max(bass_max, bass) * cooldown*cooldown
+    low_midrange_max = max(low_midrange_max, low_midrange) * cooldown*cooldown
     midrange_max = max(midrange_max, midrange) * cooldown
     upper_midrange_max = max(upper_midrange_max, upper_midrange) * cooldown
     presence_max = max(presence_max, presence) * cooldown
@@ -70,15 +70,15 @@ def beat_detect(in_data):
     # use set to keep track of target pins
     pins = set(())
 
-    if sub_bass >= sub_bass_max * threshold :
+    if sub_bass >= sub_bass_max * threshold:
         pins.add(Pin.GREEN)
         print("Sub Bass Beat")
 
-    if bass >= bass_max * threshold :
+    if bass >= bass_max * threshold:
         pins.add(Pin.GREEN)
         print("Bass Beat")
 
-    if low_midrange >= low_midrange_max * threshold :
+    if low_midrange >= low_midrange_max * threshold:
         pins.add(Pin.YELLOW)
         print("Low Midrange Beat")
 
@@ -86,20 +86,19 @@ def beat_detect(in_data):
         pins.add(Pin.YELLOW)
         print("Midrange Beat")
 
-    if upper_midrange >= upper_midrange_max * threshold :
+    if upper_midrange >= upper_midrange_max * threshold:
         pins.add(Pin.YELLOW)
         print("Upper Midrange Beat")
 
-    if presence >= presence_max * threshold :
+    if presence >= presence_max * threshold:
         pins.add(Pin.RED)
         print("Presence Beat")
 
-    if brilliance >= brilliance_max * threshold :
+    if brilliance >= brilliance_max * threshold:
         pins.add(Pin.RED)
         print("Brilliance Beat")
 
     primary_freq = freqs[np.argmax(audio_fft)]
-    print("Primary Frequency: ", primary_freq)
 
     """ pins.clear();
     if primary_freq >= 25 and primary_freq <= 250:
@@ -109,11 +108,10 @@ def beat_detect(in_data):
     elif primary_freq >= 3000:
         pins.add(Pin.RED) """
     
-    # for pin in pins:
-    #   api.blink(pin)
-    for pin in Pin.range():
-        api.send(pin, pin in pins)
-
+    for pin in pins:
+      api.blink(pin)
+    #for pin in Pin.range():
+    #  api.send(pin, pin in pins)
 
 
 # define callback (2)
