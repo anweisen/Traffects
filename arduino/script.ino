@@ -19,7 +19,7 @@ void setup() {
   }
 }
 
-int queue[4]; // create queue array of size 4 (maximum command length is now 4 bytes)
+int queue[16]; // create queue array of size 16 (maximum command length is now 16 bytes)
 int cursor = 0; // keep track of current queue position
 
 void loop() {
@@ -50,10 +50,10 @@ void loop() {
 }
 
 void execute() {
-  int mode = queue[0];
+  int pin = queue[0];
   int data = queue[1];
 
-  set(PINS[mode], data ? ON : OFF);
+  set(PINS[pin], data ? ON : OFF);
 }
 
 void set(uint8_t pin, uint8_t mode) {
