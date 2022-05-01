@@ -80,6 +80,6 @@ class Traffects:
   def get(self, pin: int) -> bool:
     return self.state[pin]
 
-  def blink(self, pin: int, period: int = .065):
+  def blink(self, pin: int, period: int = .085):
       self.send(pin, True)
       threading.Timer(period, lambda: self.send(pin, False)).start()
