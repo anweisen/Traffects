@@ -2,9 +2,20 @@ from asyncio import constants
 from enum import Enum
 import serial
 import time
+import threading
+import functools
 
 def convert_data(data: int) -> bytes :
   return data.to_bytes(1, byteorder="big", signed=data < 0)
+
+# Create a @synchronized annotation like the keyword in java
+def synchronized(wrapped):
+  lock = threading.Lock()
+  @functools.wraps(wrapped)
+  def _wrap(*args, **kwargs):
+      with lock:
+          return wrapped(*args, **kwargs)
+  return _wrap
 
 class Pin:
   GREEN = 0
@@ -13,26 +24,61 @@ class Pin:
 
   @staticmethod
   def range():
-    return [0, 1, 2]
+    return [Pin.GREEN, Pin.YELLOW, Pin.RED]
 
 class Traffects:
 
   def __init__(self, device: str, baudrate: int = 9600):
     self.arduino = serial.Serial(port=device, baudrate=baudrate, timeout=0)
-    "self.send_data(-1)"
-    time.sleep(3.5)
+    self.state = [False, False, False]
+    time.sleep(1) # wait 1s, arduino serial connection is not ready immediately
+    threading.Thread(target=self._write_stats).start()
+
+  def _write_stats(self):
+    file = open("tracker.txt", "r")
+    self.stats = [
+      int(file.readline().replace("\n", "")),
+      int(file.readline().replace("\n", "")),
+      int(file.readline().replace("\n", ""))
+    ]
+
+    try:
+      while 1:
+        file = open("tracker.txt", "w")
+        first = True
+        for i in self.stats:
+          if not first: file.write("\n")
+          first = False
+          file.write(str(i))
+        file.close()
+        time.sleep(1)
+    except KeyboardInterrupt:
+      pass
 
   def get_arduino(self) -> serial.Serial:
     return self.arduino
 
-  def send(self, pin: int | Pin, on: bool):
+  @synchronized
+  def send(self, pin: int, on: bool):
+    self.state[pin] = on
+    self.stats[pin] = self.stats[pin] + 1
     self.step(pin)
     self.step(on)
+    print(f"{pin} -> {on}")
     self.finish()
 
+  @synchronized
   def step(self, data: int):
     self.arduino.write(convert_data(data))
 
+  @synchronized
   def finish(self):
     self.arduino.write(b'\xff')
     self.arduino.flush()
+
+  def get(self, pin: int) -> bool:
+    return self.state[pin]
+
+  def blink(self, pin: int, period: int = .065):
+      self.send(pin, True)
+      threading.Timer(period, lambda: self.send(pin, False)).start()
