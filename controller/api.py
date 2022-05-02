@@ -5,10 +5,10 @@ import time
 import threading
 import functools
 
-def convert_data(data: int) -> bytes :
+def int_to_bytes(data: int) -> bytes:
   return data.to_bytes(1, byteorder="big", signed=data < 0)
 
-# Create a @synchronized annotation like the keyword in java
+# create a @synchronized annotation like the keyword in java
 def synchronized(wrapped):
   lock = threading.Lock()
   @functools.wraps(wrapped)
@@ -28,30 +28,29 @@ class Pin:
 
 class Traffects:
 
-  def __init__(self, device: str, baudrate: int = 9600, tracker: bool = True):
+  def __init__(self, device: str, baudrate: int = 9600, tracker: bool = True, wait: bool = True):
     self.arduino = serial.Serial(port=device, baudrate=baudrate, timeout=0)
     self.state = [False, False, False]
-    if tracker: threading.Thread(target=self._write_stats).start()
-    time.sleep(1) # wait 1s, arduino serial connection is not ready immediately
+    if tracker: threading.Thread(target=self.__write_stats).start()
+    if wait: time.sleep(1) # wait 1s, arduino serial connection is not ready immediately
 
-  def _write_stats(self):
-    file = open("tracker.txt", "r")
-    self.stats = [
-      int(file.readline().replace("\n", "")),
-      int(file.readline().replace("\n", "")),
-      int(file.readline().replace("\n", ""))
-    ]
+  def __write_stats(self):
+    with open("tracker.txt", "r") as file:
+      self.stats = [
+        int(file.readline().replace("\n", "")),
+        int(file.readline().replace("\n", "")),
+        int(file.readline().replace("\n", ""))
+      ]
 
     try:
       while 1:
-        file = open("tracker.txt", "w")
-        first = True
-        for i in self.stats:
-          if not first: file.write("\n")
-          first = False
-          file.write(str(i))
-        file.close()
         time.sleep(1)
+        with open("tracker.txt", "w") as file:
+          first = True
+          for i in self.stats:
+            if not first: file.write("\n")
+            first = False
+            file.write(str(i))
     except KeyboardInterrupt:
       pass
 
@@ -59,27 +58,32 @@ class Traffects:
     return self.arduino
 
   @synchronized
-  def send(self, pin: int, on: bool):
-    if self.stats is not None and self.state[pin] != on: 
-      self.stats[pin] = self.stats[pin] + 1
-
-    self.state[pin] = on
-    self.step(pin)
-    self.step(on)
-    self.finish()
-
-  @synchronized
   def step(self, data: int):
-    self.arduino.write(convert_data(data))
+    self.arduino.write(int_to_bytes(data))
 
   @synchronized
   def finish(self):
+    # write 0xff which is used as the termiator byte, flush serial stream
     self.arduino.write(b'\xff')
     self.arduino.flush()
+
+  @synchronized
+  def send(self, data: list[int]):
+    for current in data:
+      self.step(current)
+    self.finish()
 
   def get(self, pin: int) -> bool:
     return self.state[pin]
 
+  @synchronized
+  def set(self, pin: int, on: bool):
+    if self.stats is not None and self.state[pin] != on: 
+      self.stats[pin] = self.stats[pin] + 1
+    self.state[pin] = on
+
+    self.send([pin, on])
+
   def blink(self, pin: int, period: int = .085):
-      self.send(pin, True)
-      threading.Timer(period, lambda: self.send(pin, False)).start()
+      self.set(pin, True)
+      threading.Timer(period, lambda: self.set(pin, False)).start()

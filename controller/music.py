@@ -4,15 +4,15 @@ import numpy as np
 from api import Traffects, Pin
 
 # avaialable processors
-def process_blink(api: Traffects, pins: set, primary_freq: int):
+def process_blink(api: Traffects, pins: set[int], primary_freq: int):
     for pin in pins:
       api.blink(pin)
 
-def process_toggle(api: Traffects, pins: set, primary_freq: int):
+def process_toggle(api: Traffects, pins: set[int], primary_freq: int):
     for pin in Pin.range():
-      api.send(pin, pin in pins)
+      api.set(pin, pin in pins)
 
-def process_primary(api: Traffects, pins: set, primary_freq: int):
+def process_primary(api: Traffects, pins: set[int], primary_freq: int):
     pins.clear();
     if primary_freq >= 25 and primary_freq <= 250:
         pins.add(Pin.GREEN)
