@@ -24,7 +24,7 @@ def process_primary(api: Traffects, pins: set, primary_freq: int):
     process_toggle(api, pins, primary_freq)
 
 # config values
-threshold = .9
+threshold = .899
 cooldown = .99
 processor = process_toggle
 
@@ -59,6 +59,7 @@ def beat_detect(in_data):
     freqs = rate * np.arange(len(audio_fft)) / len(audio_fft)
 
     # frequency ranges for each important audio group
+    # https://www.teachmeaudio.com/mixing/techniques/audio-spectrum
     sub_bass_indices = [idx for idx,val in enumerate(freqs) if val >= 20 and val <= 60]
     bass_indices = [idx for idx,val in enumerate(freqs) if val >= 60 and val <= 250]
     low_midrange_indices = [idx for idx,val in enumerate(freqs) if val >= 250 and val <= 500]
@@ -77,9 +78,9 @@ def beat_detect(in_data):
     brilliance = np.max(audio_fft[brilliance_indices])
 
     global sub_bass_max, bass_max, low_midrange_max, midrange_max, upper_midrange_max, presence_max, brilliance_max
-    sub_bass_max = max(sub_bass_max, sub_bass)
-    bass_max = max(bass_max, bass) * cooldown*cooldown
-    low_midrange_max = max(low_midrange_max, low_midrange) * cooldown*cooldown
+    sub_bass_max = max(sub_bass_max, sub_bass) * cooldown
+    bass_max = max(bass_max, bass) * cooldown
+    low_midrange_max = max(low_midrange_max, low_midrange) * cooldown
     midrange_max = max(midrange_max, midrange) * cooldown
     upper_midrange_max = max(upper_midrange_max, upper_midrange) * cooldown
     presence_max = max(presence_max, presence) * cooldown
@@ -103,7 +104,7 @@ def beat_detect(in_data):
         pins.add(Pin.YELLOW)
         print("Low Midrange Beat")
 
-    if midrange >= midrange_max*.9 :
+    if midrange >= midrange_max * threshold :
         pins.add(Pin.YELLOW)
         print("Midrange Beat")
 
