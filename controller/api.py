@@ -1,5 +1,3 @@
-from asyncio import constants
-from enum import Enum
 import serial
 import time
 import threading
