@@ -3,9 +3,30 @@ import time
 import numpy as np
 from api import Traffects, Pin
 
+# avaialable processors
+def process_blink(api: Traffects, pins: set, primary_freq: int):
+    for pin in pins:
+      api.blink(pin)
+
+def process_toggle(api: Traffects, pins: set, primary_freq: int):
+    for pin in Pin.range():
+      api.send(pin, pin in pins)
+
+def process_primary(api: Traffects, pins: set, primary_freq: int):
+    pins.clear();
+    if primary_freq >= 25 and primary_freq <= 250:
+        pins.add(Pin.GREEN)
+    elif primary_freq >= 250 and primary_freq <= 3000:
+        pins.add(Pin.YELLOW)
+    elif primary_freq >= 3000:
+        pins.add(Pin.RED)
+
+    process_toggle(api, pins, primary_freq)
+
 # config values
 threshold = .9
 cooldown = .99
+processor = process_toggle
 
 # initialize with start values
 global sub_bass_max, bass_max, low_midrange_max, midrange_max, upper_midrange_max, presence_max, brilliance_max
@@ -100,24 +121,11 @@ def beat_detect(in_data):
 
     primary_freq = freqs[np.argmax(audio_fft)]
 
-    """ pins.clear();
-    if primary_freq >= 25 and primary_freq <= 250:
-        pins.add(Pin.GREEN)
-    elif primary_freq >= 250 and primary_freq <= 3000:
-        pins.add(Pin.YELLOW)
-    elif primary_freq >= 3000:
-        pins.add(Pin.RED) """
-    
-    for pin in pins:
-      api.blink(pin)
-    #for pin in Pin.range():
-    #  api.send(pin, pin in pins)
+    processor(api, pins, primary_freq)
 
 
 # define callback (2)
 def callback(in_data, frame_count, time_info, status):
-    """ data = wf.readframes(frame_count)
-    beat_detect(data) """
     data = np.fromstring(in_data, dtype=np.int16)
     beat_detect(data)
     return (in_data, pyaudio.paContinue)
