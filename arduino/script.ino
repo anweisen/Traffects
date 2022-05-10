@@ -63,10 +63,18 @@ void loop() {
 }
 
 void execute() {
-  int pin = queue[0];
-  int data = queue[1];
+  int mode = queue[0];
 
-  set(PINS[pin], data ? ON : OFF);
+  switch (mode) {
+    case 0: {
+      int pin = queue[1];
+      int data = queue[2];
+
+      set(PINS[pin], data ? ON : OFF);
+      break;
+    }
+  }
+
 }
 
 void set(uint8_t pin, uint8_t mode) {

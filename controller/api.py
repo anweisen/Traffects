@@ -24,6 +24,9 @@ class Pin:
   def range():
     return [Pin.GREEN, Pin.YELLOW, Pin.RED]
 
+class Mode:
+  SET_PIN = 0
+
 class Traffects:
 
   def __init__(self, device: str, baudrate: int = 115200, tracker: bool = True, wait: bool = True):
@@ -66,7 +69,8 @@ class Traffects:
     self.arduino.flush()
 
   @synchronized
-  def send(self, data: list[int]):
+  def send(self, mode: int, data: list[int]):
+    self.step(mode)
     for current in data:
       self.step(current)
     self.finish()
@@ -74,13 +78,12 @@ class Traffects:
   def get(self, pin: int) -> bool:
     return self.state[pin]
 
-  @synchronized
   def set(self, pin: int, on: bool):
     if self.stats is not None and self.state[pin] != on: 
       self.stats[pin] = self.stats[pin] + 1
     self.state[pin] = on
 
-    self.send([pin, on])
+    self.send(Mode.SET_PIN, [pin, on])
 
   def blink(self, pin: int, period: int = .085):
       self.set(pin, True)
