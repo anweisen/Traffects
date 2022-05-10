@@ -8,7 +8,7 @@ uint8_t PIN_RED = 7;
 uint8_t PINS[] = { PIN_GREEN, PIN_YELLOW, PIN_RED };
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.flush();
 
   // define all pins as output and set them to OFF, 

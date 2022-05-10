@@ -26,7 +26,7 @@ class Pin:
 
 class Traffects:
 
-  def __init__(self, device: str, baudrate: int = 9600, tracker: bool = True, wait: bool = True):
+  def __init__(self, device: str, baudrate: int = 115200, tracker: bool = True, wait: bool = True):
     self.arduino = serial.Serial(port=device, baudrate=baudrate, timeout=0)
     self.state = [False, False, False]
     if tracker: threading.Thread(target=self.__write_stats).start()
