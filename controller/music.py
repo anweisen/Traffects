@@ -3,17 +3,29 @@ import time
 import numpy as np
 from api import Traffects, Pin
 
-# avaialable processors
-def process_blink(api: Traffects, pins: set[int], primary_freq: int):
-    for pin in pins:
+# frequency ranges for each important audio group
+# https://www.teachmeaudio.com/mixing/techniques/audio-spectrum
+class Frequency:
+    SUB_BASS        = (  20,    60)
+    BASS            = (  60,   250)
+    LOW_MIDRANGE    = ( 250,   500)
+    MIDRANGE        = ( 500,  2000)
+    UPPER_MIDRANGE  = (2000,  4000)
+    PRESENCE        = (4000,  6000)
+    BRILLIANCE      = (6000, 20000)
+
+# simple processor you can use
+def process_blink(api: Traffects, triggered: set[Frequency, Pin], primary_freq: int):
+    for (_, pin) in triggered:
       api.blink(pin)
 
-def process_toggle(api: Traffects, pins: set[int], primary_freq: int):
+def process_toggle(api: Traffects, triggered: set[Frequency, Pin], primary_freq: int):
+    pins = [pin for (_, pin) in triggered]
     for pin in Pin.range():
       api.set(pin, pin in pins)
 
-def process_primary(api: Traffects, pins: set[int], primary_freq: int):
-    pins.clear();
+def process_primary(api: Traffects, triggered: set[Frequency, Pin], primary_freq: int):
+    pins = set()
     if primary_freq >= 25 and primary_freq <= 250:
         pins.add(Pin.GREEN)
     elif primary_freq >= 250 and primary_freq <= 3000:
@@ -21,22 +33,22 @@ def process_primary(api: Traffects, pins: set[int], primary_freq: int):
     elif primary_freq >= 3000:
         pins.add(Pin.RED)
 
-    process_toggle(api, pins, primary_freq)
+    for pin in Pin.range():
+      api.set(pin, pin in pins)
 
 # config values
 threshold = .899
 cooldown = .99
 processor = process_toggle
-
-# initialize with start values
-global sub_bass_max, bass_max, low_midrange_max, midrange_max, upper_midrange_max, presence_max, brilliance_max
-sub_bass_max = 10
-bass_max = 10
-low_midrange_max = 10
-midrange_max = 10
-upper_midrange_max = 10
-presence_max = 10
-brilliance_max = 10
+mapping = [
+    (Frequency.SUB_BASS,       Pin.GREEN),
+    (Frequency.BASS,           Pin.GREEN),
+    (Frequency.LOW_MIDRANGE,   Pin.YELLOW),
+    (Frequency.MIDRANGE,       Pin.YELLOW),
+    (Frequency.UPPER_MIDRANGE, Pin.YELLOW),
+    (Frequency.PRESENCE,       Pin.RED),
+    (Frequency.BRILLIANCE,     Pin.RED),
+]
 
 p = pyaudio.PyAudio()
 api = Traffects("COM4")
@@ -50,79 +62,35 @@ for i in range(p.get_device_count()):
         vc = info
         print(f"Found Vritual Cable {i} = '{info['name']}': {info['maxOutputChannels']} channels, {int(info['defaultSampleRate'])} samplerate")
 
-rate = int(vc['defaultSampleRate'])
+device_index = vc["index"]
+rate = int(vc["defaultSampleRate"])
 channels = 1
 bytes_per_sample = 2**12
+
+# keeps track of the last volume
+maximum = [0 for _ in range(len(mapping))] 
 
 def beat_detect(in_data):
     audio_fft = np.abs(np.fft.fft(in_data))
     freqs = rate * np.arange(len(audio_fft)) / len(audio_fft)
+    primary_freq = freqs[np.argmax(audio_fft)]  
 
-    # frequency ranges for each important audio group
-    # https://www.teachmeaudio.com/mixing/techniques/audio-spectrum
-    sub_bass_indices = [idx for idx,val in enumerate(freqs) if val >= 20 and val <= 60]
-    bass_indices = [idx for idx,val in enumerate(freqs) if val >= 60 and val <= 250]
-    low_midrange_indices = [idx for idx,val in enumerate(freqs) if val >= 250 and val <= 500]
-    midrange_indices = [idx for idx,val in enumerate(freqs) if val >= 500 and val <= 2000]
-    upper_midrange_indices = [idx for idx,val in enumerate(freqs) if val >= 2000 and val <= 4000]
-    presence_indices = [idx for idx,val in enumerate(freqs) if val >= 4000 and val <= 6000]
-    brilliance_indices = [idx for idx,val in enumerate(freqs) if val >= 6000 and val <= 20000]
+    triggered = set()
+    if primary_freq == 0:
+        processor(api, triggered, primary_freq)
+        return
 
-    # find max value for each frequency range
-    sub_bass = np.max(audio_fft[sub_bass_indices])
-    bass = np.max(audio_fft[bass_indices])
-    low_midrange = np.max(audio_fft[low_midrange_indices])
-    midrange = np.max(audio_fft[midrange_indices])
-    upper_midrange = np.max(audio_fft[upper_midrange_indices])
-    presence = np.max(audio_fft[presence_indices])
-    brilliance = np.max(audio_fft[brilliance_indices])
+    for i in range(len(mapping)):
+        ((min_freq, max_freq)) = mapping[i]
 
-    global sub_bass_max, bass_max, low_midrange_max, midrange_max, upper_midrange_max, presence_max, brilliance_max
-    sub_bass_max = max(sub_bass_max, sub_bass) * cooldown
-    bass_max = max(bass_max, bass) * cooldown
-    low_midrange_max = max(low_midrange_max, low_midrange) * cooldown
-    midrange_max = max(midrange_max, midrange) * cooldown
-    upper_midrange_max = max(upper_midrange_max, upper_midrange) * cooldown
-    presence_max = max(presence_max, presence) * cooldown
-    brilliance_max = max(brilliance_max, brilliance) * cooldown
-    
-    # print("Max:", sub_bass_max)
-    # print("Bass:", sub_bass)
+        indices = [idx for (idx, val) in enumerate(freqs) if val >= min_freq and val <= max_freq]
+        value = np.max(audio_fft[indices])
+        maximum[i] = max_value = max(value, maximum[i]) * cooldown
 
-    # use set to keep track of target pins
-    pins = set(())
-
-    if sub_bass >= sub_bass_max * threshold:
-        pins.add(Pin.GREEN)
-        print("Sub Bass Beat")
-
-    if bass >= bass_max * threshold:
-        pins.add(Pin.GREEN)
-        print("Bass Beat")
-
-    if low_midrange >= low_midrange_max * threshold:
-        pins.add(Pin.YELLOW)
-        print("Low Midrange Beat")
-
-    if midrange >= midrange_max * threshold :
-        pins.add(Pin.YELLOW)
-        print("Midrange Beat")
-
-    if upper_midrange >= upper_midrange_max * threshold:
-        pins.add(Pin.YELLOW)
-        print("Upper Midrange Beat")
-
-    if presence >= presence_max * threshold:
-        pins.add(Pin.RED)
-        print("Presence Beat")
-
-    if brilliance >= brilliance_max * threshold:
-        pins.add(Pin.RED)
-        print("Brilliance Beat")
-
-    primary_freq = freqs[np.argmax(audio_fft)]
-
-    processor(api, pins, primary_freq)
+        if value >= max_value * threshold:
+            triggered.add(mapping[i])
+   
+    processor(api, triggered, primary_freq)
 
 
 # define callback (2)
@@ -137,7 +105,7 @@ stream = p.open(format=pyaudio.paInt16,
                 rate=rate,
                 frames_per_buffer=bytes_per_sample,
                 input=True,
-                input_device_index=vc['index'],
+                input_device_index=device_index,
                 stream_callback=callback)
 
 # start the stream (4)
