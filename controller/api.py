@@ -40,33 +40,47 @@ class Traffects:
       self.stats = [
         int(file.readline().replace("\n", "")),
         int(file.readline().replace("\n", "")),
+        int(file.readline().replace("\n", "")),
+        int(file.readline().replace("\n", "")),
         int(file.readline().replace("\n", ""))
       ]
 
+    interval = .1
+
     try:
       while 1:
-        time.sleep(1)
+        time.sleep(interval)
+        self.stats[4] = self.stats[4] + interval
         with open("tracker.txt", "w") as file:
           first = True
           for i in self.stats:
             if not first: file.write("\n")
             first = False
-            file.write(str(i))
+            file.write(str(int(i)))
     except KeyboardInterrupt:
       pass
+
+  def __write(self, byte: bytes):	
+    if self.stats is not None: 
+      self.stats[3] = self.stats[3] + 1
+    self.arduino.write(byte)
+  
+  def __flush(self):
+    self.arduino.flush()
+    pass
 
   def get_arduino(self) -> serial.Serial:
     return self.arduino
 
   @synchronized
   def step(self, data: int):
-    self.arduino.write(int_to_bytes(data))
+    self.__write(int_to_bytes(data))
 
   @synchronized
   def finish(self):
     # write 0xff which is used as the termiator byte, flush serial stream
-    self.arduino.write(b'\xff')
-    self.arduino.flush()
+    self.__write(b'\xff')
+    self.__flush()
 
   @synchronized
   def send(self, mode: int, data: list[int]):
@@ -79,7 +93,10 @@ class Traffects:
     return self.state[pin]
 
   def set(self, pin: int, on: bool):
-    if self.stats is not None and self.state[pin] != on: 
+    if self.state[pin] == on:
+      return
+
+    if self.stats is not None: 
       self.stats[pin] = self.stats[pin] + 1
     self.state[pin] = on
 
