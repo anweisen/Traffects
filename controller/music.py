@@ -83,13 +83,14 @@ def beat_detect(in_data):
         return
 
     for i in range(len(mapping)):
-        ((min_freq, max_freq)) = mapping[i]
+        ((min_freq, max_freq), pin) = mapping[i]
 
-        indices = [idx for (idx, val) in enumerate(freqs) if val >= min_freq and val <= max_freq]
+        indices = [idx for idx, val in enumerate(freqs) if val >= min_freq and val <= max_freq]
         value = np.max(audio_fft[indices])
         maximum[i] = max_value = max(value, maximum[i]) * cooldown
 
-        if value >= max_value * threshold:
+        # value / max_value: the percentage from maximum
+        if value / max_value >= threshold:
             triggered.add(mapping[i])
    
     processor(api, triggered, primary_freq)
