@@ -17,6 +17,18 @@ void setup() {
     pinMode(pin, OUTPUT);
     set(pin, OFF);
   }
+
+  // play simple power animation
+  for (int i = 0; i < 2; i++) {
+    for (uint8_t pin : PINS) {
+      set(pin, ON);
+    }
+    delay(250);
+    for (uint8_t pin : PINS) {
+      set(pin, OFF);
+    }
+    delay(150);
+  }
 }
 
 int queue[16]; // create queue array of size 16 (maximum command length is now 16 bytes)
@@ -25,7 +37,7 @@ int cursor = 0; // keep track of current queue position
 void loop() {
 
   while (Serial.available()) {
-    // read the current byte and add it to the queue array
+    // read the current byte
     int value = Serial.read();
 
     // 0xff as command terminator -> process command bytes
@@ -44,6 +56,7 @@ void loop() {
       return;
     }
 
+    // add current byte to queue
     queue[cursor] = value;
     cursor++;
   }
