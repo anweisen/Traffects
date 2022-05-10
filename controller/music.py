@@ -50,6 +50,7 @@ mapping = [
     (Frequency.BRILLIANCE,     Pin.RED),
 ]
 
+# init managers
 p = pyaudio.PyAudio()
 api = Traffects("COM4")
 
@@ -62,6 +63,7 @@ for i in range(p.get_device_count()):
         vc = info
         print(f"Found Vritual Cable {i} = '{info['name']}': {info['maxOutputChannels']} channels, {int(info['defaultSampleRate'])} samplerate")
 
+# declare device specs
 device_index = vc["index"]
 rate = int(vc["defaultSampleRate"])
 channels = 1
@@ -93,13 +95,13 @@ def beat_detect(in_data):
     processor(api, triggered, primary_freq)
 
 
-# define callback (2)
+# define callback
 def callback(in_data, frame_count, time_info, status):
     data = np.fromstring(in_data, dtype=np.int16)
     beat_detect(data)
     return (in_data, pyaudio.paContinue)
 
-# open stream using callback (3)
+# open stream using callback
 stream = p.open(format=pyaudio.paInt16,
                 channels=channels,
                 rate=rate,
@@ -108,16 +110,14 @@ stream = p.open(format=pyaudio.paInt16,
                 input_device_index=device_index,
                 stream_callback=callback)
 
-# start the stream (4)
+# start the stream
 stream.start_stream()
 
-# wait for stream to finish (5)
+# wait for stream to finish
 while stream.is_active():
     time.sleep(0.1)
 
-# stop stream (6)
+# stop stream and terminate
 stream.stop_stream()
 stream.close()
-
-# close PyAudio (7)
 p.terminate()
