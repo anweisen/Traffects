@@ -67,7 +67,7 @@ rate = int(vc["defaultSampleRate"])
 channels = 1
 bytes_per_sample = 2**12
 
-# keeps track of the last volume
+# keeps track of the last maximum volume for each frequency of mapping
 maximum = [0 for _ in range(len(mapping))] 
 
 def beat_detect(in_data):
