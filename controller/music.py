@@ -37,7 +37,7 @@ def process_primary(api: Traffects, triggered: set[Frequency, Pin], primary_freq
       api.set(pin, pin in pins)
 
 # config values
-threshold = .899
+threshold = .915
 cooldown = .99
 processor = process_toggle
 mapping = [
