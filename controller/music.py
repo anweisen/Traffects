@@ -55,17 +55,17 @@ p = pyaudio.PyAudio()
 api = Traffects("COM4")
 
 # find virtual cable
-vc = None
+mic = None
 for i in range(p.get_device_count()):
     info = p.get_device_info_by_index(i)
    
     if "vb-audio virtual" in info["name"].lower() and "output" in info["name"].lower():
-        vc = info
+        mic = info
         print(f"Found Vritual Cable {i} = '{info['name']}': {info['maxOutputChannels']} channels, {int(info['defaultSampleRate'])} samplerate")
 
 # declare device specs
-device_index = vc["index"]
-rate = int(vc["defaultSampleRate"])
+device_index = mic["index"]
+rate = int(mic["defaultSampleRate"])
 channels = 1
 bytes_per_sample = 2**12
 
