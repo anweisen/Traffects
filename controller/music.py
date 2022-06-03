@@ -52,7 +52,7 @@ mapping = [
 
 # init managers
 p = pyaudio.PyAudio()
-api = Traffects("COM4")
+api = Traffects("COM8")
 
 # find virtual cable
 mic = None
