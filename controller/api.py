@@ -11,8 +11,8 @@ def synchronized(wrapped):
   lock = threading.Lock()
   @functools.wraps(wrapped)
   def _wrap(*args, **kwargs):
-      with lock:
-          return wrapped(*args, **kwargs)
+    with lock:
+      return wrapped(*args, **kwargs)
   return _wrap
 
 class Pin:
@@ -103,5 +103,5 @@ class Traffects:
     self.send(Mode.SET_PIN, [pin, on])
 
   def blink(self, pin: int, period: int = .085):
-      self.set(pin, True)
-      threading.Timer(period, lambda: self.set(pin, False)).start()
+    self.set(pin, True)
+    threading.Timer(period, lambda: self.set(pin, False)).start()
