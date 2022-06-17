@@ -58,9 +58,10 @@ api = Traffects("COM8")
 mic = None
 for i in range(p.get_device_count()):
   info = p.get_device_info_by_index(i)
-   
-  if "vb-audio virtual" in info["name"].lower() and "output" in info["name"].lower():
-    print(f"Found Vritual Cable {i} = '{info['name']}': {info['maxOutputChannels']} channels, {int(info['defaultSampleRate'])} samplerate")
+
+  _name = info["name"].lower()
+  if "vb-audio virtual" in _name and "output" in _name:
+    print(f"Found Vritual Cable {i} = '{info['name']}': {info['maxOutputChannels']} channels, samplerate {int(info['defaultSampleRate'])}hz")
     mic = info
 
 # declare device specs
@@ -92,8 +93,8 @@ def beat_detect(input):
     # value / max_value: the percentage from maximum
     if value / max_value >= threshold:
       triggered.add(mapping[i])
-   
-    processor(api, triggered, primary_freq)
+
+  processor(api, triggered, primary_freq)
 
 
 # define callback
