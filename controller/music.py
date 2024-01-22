@@ -6,8 +6,8 @@ from api import Traffects, Pin
 # frequency ranges for each important audio group
 # https://www.teachmeaudio.com/mixing/techniques/audio-spectrum
 class Frequency:
-  SUB_BASS        = (  20,    60)
-  BASS            = (  60,   250)
+  SUB_BASS        = (  20,    85)
+  BASS            = (  85,   250)
   LOW_MIDRANGE    = ( 250,   500)
   MIDRANGE        = ( 500,  2000)
   UPPER_MIDRANGE  = (2000,  4000)
